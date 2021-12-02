@@ -82,91 +82,99 @@ void BundleAdjustment::optimize()
 {
     optimizationInit();
 
-    int niter = 0;
-    double upsilon = 2.0;
-    const double tau = 1e-8;
-
-    computeHAndbAndError();
-    last_sum_error2_ = sum_error2_;
-
-    bool found = ((-b_).lpNorm<Eigen::Infinity>() < min_error_);
-
-    std::vector<double> aa;
-    aa.reserve(H_.rows());
-    for(int i = 0; i < H_.rows(); i++)
+    if(true)
     {
-        aa.push_back(H_(i, i));
-    }
-
-    auto max_aa = std::max_element(aa.begin(), aa.end());
-    double mu = tau * (*max_aa);
-
-    double total_time = 0.0;
-    while (!found && niter < max_iters_)
-    {
-        Runtimer t;
-        t.start();
-
-        niter++;
-
-        H_ += mu * I_;
-        solveNormalEquation();
-
-        double delta = Delta_X_.norm();
-
-        if(delta < min_delta_)
-        {
-            break;
-        }
-
-        updateStates();
+        int niter = 0;
+        double upsilon = 2.0;
+        const double tau = 1e-8;
 
         computeHAndbAndError();
+        last_sum_error2_ = sum_error2_;
 
-        double varrho = (last_sum_error2_ - sum_error2_) / (Delta_X_.transpose()*(mu*Delta_X_+b_))(0,0);
+        bool found = ((-b_).lpNorm<Eigen::Infinity>() < min_error_);
 
-        // 误差一直在减小
-        if(varrho > 0)
+        // std::cout << b_.transpose() << std::endl;
+        // std::cout << found << std::endl;
+
+        std::vector<double> aa;
+        aa.reserve(H_.rows());
+        for(int i = 0; i < H_.rows(); i++)
         {
-            last_sum_error2_ = sum_error2_;
-            found = ((-b_).lpNorm<Eigen::Infinity>() < min_error_);
-            mu = mu * std::max<double>(0.3333, 1.0-std::pow(2.0*varrho-1.0, 3));
-            upsilon = 2.0;
+            aa.push_back(H_(i, i));
         }
-        else
+
+        auto max_aa = std::max_element(aa.begin(), aa.end());
+        double mu = tau * (*max_aa);
+
+        double total_time = 0.0;
+        while (!found && niter < max_iters_)
         {
-            recoverStates();
+            Runtimer t;
+            t.start();
+
+            niter++;
+
+            H_ += mu * I_;
+            solveNormalEquation();
+
+            double delta = Delta_X_.norm();
+
+            if(delta < min_delta_)
+            {
+                break;
+            }
+
+            updateStates();
+
             computeHAndbAndError();
-            mu = mu * upsilon;
-            upsilon *= 2.0;
+
+            double varrho = (last_sum_error2_ - sum_error2_) / (Delta_X_.transpose()*(mu*Delta_X_+b_))(0,0);
+
+            // 误差一直在减小
+            if(varrho > 0)
+            {
+                last_sum_error2_ = sum_error2_;
+                found = ((-b_).lpNorm<Eigen::Infinity>() < min_error_);
+                mu = mu * std::max<double>(0.3333, 1.0-std::pow(2.0*varrho-1.0, 3));
+                upsilon = 2.0;
+            }
+            else
+            {
+                recoverStates();
+                computeHAndbAndError();
+                mu = mu * upsilon;
+                upsilon *= 2.0;
+            }
+
+            t.stop();
+            total_time += t.duration();
+
+            if(verbose_)
+            {
+                std::cout << std::fixed << "Iter: " << std::left <<std::setw(4) << niter 
+                << " Cost: "<< std::left <<std::setw(20)  << std::setprecision(10) << sum_error2_ 
+                << " Step: " << std::left <<std::setw(14) << std::setprecision(10) << delta 
+                << " Time " << std::left <<std::setw(10) << std::setprecision(3) << t.duration() 
+                << " Total_time " << std::left <<std::setw(10) << std::setprecision(3) << total_time << std::endl;
+            }
+
         }
-
-        t.stop();
-        total_time += t.duration();
-
-        if(verbose_)
-        {
-            std::cout << std::fixed << "Iter: " << std::left <<std::setw(4) << niter 
-			<< " Cost: "<< std::left <<std::setw(20)  << std::setprecision(10) << sum_error2_ 
-			<< " Step: " << std::left <<std::setw(14) << std::setprecision(10) << delta 
-			<< " Time " << std::left <<std::setw(10) << std::setprecision(3) << t.duration() 
-			<< " Total_time " << std::left <<std::setw(10) << std::setprecision(3) << total_time << std::endl;
-        }
-
     }
 }
 
 void BundleAdjustment::optimizationInit()
 {
     computeStateIndexes();
+    
     int state_size = n_cam_state_ * 6 + n_mpt_state_ * 3;
     int obs_size = cost_functions_.size() * 2;
+    // std::cout << state_size << " " << obs_size << std::endl;
     J_.resize(obs_size, state_size);
     JTinfo_.resize(state_size, obs_size);
     H_.resize(state_size, state_size);
     r_.resize(obs_size, 1);
     b_.resize(state_size, 1);
-    info_matrix_.resize(obs_size, obs_size);
+    // info_matrix_.resize(obs_size, obs_size);
     Delta_X_.resize(state_size, 1);
     I_.resize(state_size, state_size);
     for(int i = 0; i < state_size; i++)
@@ -221,7 +229,7 @@ void BundleAdjustment::computeHAndbAndError()
     J_.setZero();
     H_.setZero();
     r_.setZero();
-    info_matrix_.setZero();
+    info_matrix_.setIdentity();
     JTinfo_.setZero();
 
     sum_error2_ = 0;
@@ -236,7 +244,10 @@ void BundleAdjustment::computeHAndbAndError()
             Eigen::Matrix<double, 2, 6> JT;
             cost_func->computeJT(JT);
             J_.block<2,6>(2*cnt, cam->state_index_*6) = JT;
+            // std::cout << JT << std::endl;
         }
+
+        
 
         MapPoint* mpt = cost_func->map_point_;
         if(mpt->isFixed() == false)
@@ -244,6 +255,7 @@ void BundleAdjustment::computeHAndbAndError()
             Eigen::Matrix<double, 2, 3> JX;
             cost_func->computeJX(JX);
             J_.block<2,3>(2*cnt, n_cam_state_*6 + mpt->state_index_*3) = JX;
+            // std::cout << JX << std::endl;
         }
 
         Eigen::Vector2d e;
@@ -251,12 +263,13 @@ void BundleAdjustment::computeHAndbAndError()
         double weighted_e2;
         cost_func->computeInterVars(e, weighted_info, weighted_e2);
         r_.block<2,1>(2*cnt, 0) = e;
-        info_matrix_.block<2,2>(2*cnt, 2*cnt) = weighted_info;
+        // std::cout << e.transpose() << std::endl;
+        // info_matrix_.block<2,2>(2*cnt, 2*cnt) = weighted_info;
         sum_error2_ += weighted_e2;
         cnt++;
     }
 
-    JTinfo_ = J_.transpose() * info_matrix_;
+    JTinfo_ = J_.transpose();
     H_ = JTinfo_ * J_;
     b_ = -JTinfo_ * r_;
 }

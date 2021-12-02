@@ -153,12 +153,16 @@ void SolveBA(BALProblem &bal_problem)
     auto solver = new g2o::OptimizationAlgorithmLevenberg(g2o::make_unique<BlockSolverType>(g2o::make_unique<LinearSolverType>()));
     g2o::SparseOptimizer optimizer;
     optimizer.setAlgorithm(solver);
-    optimizer.setVerbose(true);
+    optimizer.setVerbose(false);
 
     const double *observations = bal_problem.observations();
 
     vector<PoseVertex *> pose_vertexs;
     vector<PointVertex *> point_vertexs;
+
+    std::cout << "num_cameras: " << bal_problem.num_cameras() << std::endl;
+    std::cout << "num_points: " << bal_problem.num_points() << std::endl;
+    std::cout << "num_observations: " << bal_problem.num_observations() << std::endl;
 
     for(int i = 0; i < bal_problem.num_cameras(); ++i)
     {

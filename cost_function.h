@@ -7,13 +7,12 @@
 class CostFunction
 {
 private:
-    double fx_, fy_, cx_, cy_;
     Eigen::Vector2d ob_z_;
     Eigen::Matrix2d info_matrix_;
     double huber_b_;
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    CostFunction(MapPoint* map_point, Camera* camera, double fx, double fy, double cx, double cy, const Eigen::Vector2d& ob_z);
+    CostFunction(MapPoint* map_point, Camera* camera, const Eigen::Vector2d& ob_z);
 
     void setHuberParameter(double b = 1.0);
     void setCovariance(const Eigen::Matrix2d& cov);

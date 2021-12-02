@@ -2,8 +2,23 @@
 #include <iostream>
 
 
-Camera::Camera(const Sophus::SE3d& pose, int id, bool fixed) :pose_(pose), id_(id), fixed_(fixed), state_index_(-1) {}
+Camera::Camera(const Sophus::SE3d& pose, int id, double focus, double k1, double k2, bool fixed) :pose_(pose), id_(id), focus_(focus), k1_(k1), k2_(k2),fixed_(fixed), state_index_(-1) {}
 
+
+double Camera::getFocus()
+{
+    return focus_;
+}
+
+double Camera::getK1()
+{
+    return k1_;
+}
+
+double Camera::getK2()
+{
+    return k2_;
+}
 
 const Sophus::SE3d& Camera::getPose()
 {

@@ -11,7 +11,8 @@
 
 class BundleAdjustment
 {
-private:
+public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     void optimizationInit();
     void computeStateIndexes();
     void computeHAndbAndError();
@@ -47,7 +48,6 @@ private:
 
 
 public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     BundleAdjustment();
     ~BundleAdjustment();
 

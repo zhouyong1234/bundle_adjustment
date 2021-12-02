@@ -69,6 +69,9 @@ void SolveBA(BALProblem &bal_problem)
 {
     const int point_block_size = bal_problem.point_block_size();
     const int camera_block_size = bal_problem.camera_block_size();
+
+    std::cout << "point_block_size: " << point_block_size << " camera_block_size: " << camera_block_size << std::endl;
+
     double *points = bal_problem.mutable_points();
     double *cameras = bal_problem.mutable_cameras();
 
@@ -104,6 +107,9 @@ void SolveBA(BALProblem &bal_problem)
             
 
             double f = Pose(camera).focus;
+
+            std::cout << "f: " << f << std::endl;
+
             double k1 = Pose(camera).k1;
             double k2 = Pose(camera).k2;
 
@@ -147,7 +153,7 @@ void SolveBA(BALProblem &bal_problem)
         
         cost /= count;
 
-        std::cout << cost << std::endl;
+        // std::cout << cost << std::endl;
 
         if(isnan(update[0]))
         {

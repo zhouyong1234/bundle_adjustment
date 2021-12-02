@@ -51,9 +51,18 @@ target_link_libraries(bal_eigen
     fmt
 )
 
-add_executable(bal_test bal_test.cpp)
-target_link_libraries(bal_test
+# add_executable(bal_test bal_test.cpp)
+# target_link_libraries(bal_test
+#     ${OpenCV_LIBRARIES}
+#     ${Sophus_LIBRARIES}
+#     bal_common
+#     fmt
+# )
+
+add_executable(bal_data_test bal_data_test.cpp)
+target_link_libraries(bal_data_test
     ${OpenCV_LIBRARIES}
+    ${Sophus_LIBRARIES}
     bal_common
     fmt
 )
