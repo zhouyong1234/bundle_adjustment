@@ -54,15 +54,15 @@ void SolveBA(BALProblem &bal_problem)
     const double *observations = bal_problem.observations();
 
 
-    std::cout << "\n**** Start motion only BA test ****\n";
+    std::cout << "***************************** Solved by BA *****************************\n";
 
 
     BundleAdjustment ba;
-    ba.setConvergenceCondition(100, 1e-5, 1e-10);
+    ba.setConvergenceCondition(100, 1e-10, 1e-15);
     ba.setVerbose(true);
 
-    std::cout << "num_cameras: " << bal_problem.num_cameras() << " " << "\tnum_points: " << bal_problem.num_points();
-    std::cout << "\tnum_observations: " << bal_problem.num_observations() << std::endl;
+    // std::cout << "num_cameras: " << bal_problem.num_cameras() << " " << "\tnum_points: " << bal_problem.num_points();
+    // std::cout << "\tnum_observations: " << bal_problem.num_observations() << std::endl;
 
     for(int i = 0; i < bal_problem.num_points(); ++i)
     {

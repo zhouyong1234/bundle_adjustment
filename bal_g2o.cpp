@@ -153,16 +153,16 @@ void SolveBA(BALProblem &bal_problem)
     auto solver = new g2o::OptimizationAlgorithmLevenberg(g2o::make_unique<BlockSolverType>(g2o::make_unique<LinearSolverType>()));
     g2o::SparseOptimizer optimizer;
     optimizer.setAlgorithm(solver);
-    optimizer.setVerbose(false);
+    optimizer.setVerbose(true);
 
     const double *observations = bal_problem.observations();
 
     vector<PoseVertex *> pose_vertexs;
     vector<PointVertex *> point_vertexs;
 
-    std::cout << "num_cameras: " << bal_problem.num_cameras() << std::endl;
-    std::cout << "num_points: " << bal_problem.num_points() << std::endl;
-    std::cout << "num_observations: " << bal_problem.num_observations() << std::endl;
+    // std::cout << "num_cameras: " << bal_problem.num_cameras() << " " << "\tnum_points: " << bal_problem.num_points();
+    // std::cout << "\tnum_observations: " << bal_problem.num_observations() << std::endl;
+    std::cout << "***************************** Solved by G2O *****************************\n";
 
     for(int i = 0; i < bal_problem.num_cameras(); ++i)
     {
@@ -181,6 +181,7 @@ void SolveBA(BALProblem &bal_problem)
         v->setId(i + bal_problem.num_cameras());
         v->setEstimate(Vector3d(point[0], point[1], point[2]));
         v->setMarginalized(true);
+        v->setFixed(true);
         optimizer.addVertex(v);
         point_vertexs.push_back(v);
     }
@@ -199,23 +200,40 @@ void SolveBA(BALProblem &bal_problem)
 
     optimizer.initializeOptimization();
     // std::cout << "optimize start" << std::endl;
-    optimizer.optimize(40);
+    optimizer.optimize(25);
     // std::cout << "optimize finish" << std::endl;
 
-    for(int i = 0; i < bal_problem.num_cameras(); ++i)
+    double sum_rot_error = 0.0;
+    double sum_trans_error = 0.0;
+    for(size_t i = 0; i < bal_problem.num_cameras(); ++i)
     {
-        double *camera = cameras + camera_block_size * i;
         auto vertex = pose_vertexs[i];
         auto estimate = vertex->estimate();
-        estimate.set_to(camera);
+        const Sophus::SE3d& opt_pose = SE3d(estimate.rotation, estimate.translation);
+        double *camera = cameras + camera_block_size * i;
+        const Sophus::SE3d& org_pose = SE3d(SO3d::exp(Vector3d(camera[0], camera[1], camera[2])), Vector3d(camera[3], camera[4], camera[5]));
+        Sophus::SE3d pose_err = opt_pose * org_pose.inverse();
+        sum_rot_error += pose_err.so3().log().norm();
+        sum_trans_error += pose_err.translation().norm();
+
     }
 
-    for(int i = 0; i < bal_problem.num_points(); ++i)
-    {
-        double *point = points + point_block_size * i;
-        auto vertex = point_vertexs[i];
-        for(int k = 0; k < 3; ++k) point[k] = vertex->estimate()[k];
-    }
+    std::cout << "Mean rot error: " << sum_rot_error / (double)(bal_problem.num_cameras()) << "\tMean trans error: " << sum_trans_error / (double)(bal_problem.num_cameras()) << std::endl;
+
+    // for(int i = 0; i < bal_problem.num_cameras(); ++i)
+    // {
+    //     double *camera = cameras + camera_block_size * i;
+    //     auto vertex = pose_vertexs[i];
+    //     auto estimate = vertex->estimate();
+    //     estimate.set_to(camera);
+    // }
+
+    // for(int i = 0; i < bal_problem.num_points(); ++i)
+    // {
+    //     double *point = points + point_block_size * i;
+    //     auto vertex = point_vertexs[i];
+    //     for(int k = 0; k < 3; ++k) point[k] = vertex->estimate()[k];
+    // }
 }
 
 

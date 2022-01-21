@@ -21,7 +21,7 @@ public:
 
     inline double duration()
     {
-        return std::chrono::duration_cast<std::chrono::duration<double>>(end_time_ - start_time_).count() * 1000.0;
+        return std::chrono::duration_cast<std::chrono::duration<double>>(end_time_ - start_time_).count();
     }
 };
 
